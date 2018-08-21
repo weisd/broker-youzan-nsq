@@ -270,7 +270,9 @@ func (n *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 	}
 
 	h := nsq.HandlerFunc(func(nm *nsq.Message) error {
+		var isDisable bool
 		if !options.AutoAck {
+			isDisable = true
 			nm.DisableAutoResponse()
 		}
 
@@ -280,7 +282,23 @@ func (n *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 			return err
 		}
 
-		// @TODO 处理延时消息
+		//  处理延时消息
+		if m.Header != nil {
+			if delay, has := m.Header["_delay"]; has {
+				if !isDisable {
+					nm.DisableAutoResponse()
+				}
+				delayTs, err := time.Parse(time.RFC3339, delay)
+				if err != nil {
+					return err
+				}
+				now := time.Now()
+				if delayTs.After(now) {
+					nm.RequeueWithoutBackoff(delayTs.Sub(now))
+				}
+
+			}
+		}
 
 		return handler(&publication{
 			topic: topic,
@@ -314,7 +332,7 @@ func (n *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 }
 
 func (n *nsqBroker) String() string {
-	return "nsq"
+	return "youzan"
 }
 
 func (p *publication) Topic() string {

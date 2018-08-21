@@ -51,11 +51,11 @@ func WithDeferredPublish(delay time.Duration) broker.PublishOption {
 	}
 }
 
-func WithLookupdAddrs(addrs []string) broker.Option {
-	return func(o *broker.Options) {
-		o.Context = context.WithValue(o.Context, lookupdAddrsKey{}, addrs)
-	}
-}
+// func WithLookupdAddrs(addrs []string) broker.Option {
+// 	return func(o *broker.Options) {
+// 		o.Context = context.WithValue(o.Context, lookupdAddrsKey{}, addrs)
+// 	}
+// }
 
 func WithConsumerOpts(consumerOpts []string) broker.Option {
 	return func(o *broker.Options) {
