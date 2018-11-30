@@ -52,6 +52,7 @@ type subscriber struct {
 
 var (
 	DefaultConcurrentHandlers = 1
+	DefaultQueueName          = ""
 )
 
 func init() {
@@ -111,47 +112,6 @@ func (n *nsqBroker) Connect() error {
 
 	n.mgr = pubMgr
 
-	// var producers []*nsq.Producer
-
-	// // create producers
-	// for _, addr := range n.addrs {
-	// 	p, err := nsq.NewProducer(addr, n.config)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	if err = p.Ping(); err != nil {
-	// 		return err
-	// 	}
-	// 	producers = append(producers, p)
-	// }
-
-	// // create consumers
-	// for _, c := range n.c {
-	// 	channel := c.opts.Queue
-	// 	if len(channel) == 0 {
-	// 		channel = uuid.NewUUID().String() + "#ephemeral"
-	// 	}
-
-	// 	cm, err := nsq.NewConsumer(c.topic, channel, n.config)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	cm.AddConcurrentHandlers(c.h, c.n)
-
-	// 	c.c = cm
-
-	// 	if len(n.lookupdAddrs) > 0 {
-	// 		c.c.ConnectToNSQLookupds(n.lookupdAddrs)
-	// 	} else {
-	// 		err = c.c.ConnectToNSQDs(n.addrs)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
-
-	// n.p = producers
 	n.running = true
 	return nil
 }
@@ -163,38 +123,12 @@ func (n *nsqBroker) Disconnect() error {
 	if !n.running {
 		return nil
 	}
-
-	// // stop the producers
-	// for _, p := range n.p {
-	// 	p.Stop()
-	// }
-
-	// // stop the consumers
-	// for _, c := range n.c {
-	// 	c.c.Stop()
-
-	// 	if len(n.lookupdAddrs) > 0 {
-	// 		// disconnect from all lookupd
-	// 		for _, addr := range n.lookupdAddrs {
-	// 			c.c.DisconnectFromNSQLookupd(addr)
-	// 		}
-	// 	} else {
-	// 		// disconnect from all nsq brokers
-	// 		for _, addr := range n.addrs {
-	// 			c.c.DisconnectFromNSQD(addr)
-	// 		}
-	// 	}
-	// }
-
-	// n.p = nil
 	n.mgr.Stop()
 	n.running = false
 	return nil
 }
 
 func (n *nsqBroker) Publish(topic string, message *broker.Message, opts ...broker.PublishOption) error {
-
-	// p := n.p[rand.Intn(len(n.p))]
 
 	options := broker.PublishOptions{}
 	for _, o := range opts {
@@ -224,24 +158,16 @@ func (n *nsqBroker) Publish(topic string, message *broker.Message, opts ...broke
 	}
 
 	if doneChan != nil {
-		// if delay > 0 {
-
-		// 	return p.DeferredPublishAsync(topic, delay, b, doneChan)
-		// }
 		return n.mgr.PublishAsync(topic, b, doneChan)
-		// return p.PublishAsync(topic, b, doneChan)
 	} else {
-		// if delay > 0 {
-		// 	return p.DeferredPublish(topic, delay, b)
-		// }
 		return n.mgr.Publish(topic, b)
-		// return p.Publish(topic, b)
 	}
 }
 
 func (n *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	options := broker.SubscribeOptions{
 		AutoAck: true,
+		Queue:   DefaultQueueName,
 	}
 
 	for _, o := range opts {
@@ -309,11 +235,7 @@ func (n *nsqBroker) Subscribe(topic string, handler broker.Handler, opts ...brok
 
 	c.AddConcurrentHandlers(h, concurrency)
 
-	// if len(n.lookupdAddrs) > 0 {
 	err = c.ConnectToNSQLookupds(n.addrs)
-	// } else {
-	// 	err = c.ConnectToNSQDs(n.addrs)
-	// }
 	if err != nil {
 		return nil, err
 	}
